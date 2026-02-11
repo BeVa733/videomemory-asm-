@@ -2,21 +2,35 @@
 .code
 org 100h
 
-Start:		mov ax, 0b800h
+Start:	
+		mov ax, 0b800h          ;es = video
 		mov es, ax
+
+		mov si, 0080h           ;ax = n_symb
+		xor ax, ax
+		mov al, [si]
+		mov cx, ax
+		dec cx
+		jcxz close
 				
-		xor bx, bx
-		mov bx, 0050h
-		mov cx, 0019h
-		
+		and ax, 0fffeh		;bx = offset
+		mov bx, 690h
+		sub bx, ax
+
+		inc si			;si = 082h (without space) 
+
 metka:
-		mov byte ptr es:[bx], 04h
-
+		inc si					; text ouput cycle
+		mov dl, [si]
+		mov es:[bx], dl
 		mov byte ptr es:[bx + 01], 4eh
-		add bx, 0a0h
+		add bx, 02h
 		loop metka
+		
+	comment*	mov byte ptr es:[bx], al
+			mov byte ptr es:[bx + 01], 4eh*
 
-		mov ah, 4ch
+close:		mov ah, 4ch
 		int 21h
 
 end		Start

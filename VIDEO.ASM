@@ -31,13 +31,11 @@ Start:
 			pop dx
 			pop cx
 
-			push cx         ; may be naher
 			push dx
 			push bx  
 			call print_text
 			pop bx
 			pop dx
-			pop cx          ;that too
 
 			mov ax, di 
 			call print_frame

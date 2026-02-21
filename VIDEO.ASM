@@ -8,50 +8,50 @@ LF		equ 0ah
 atr		equ 04h
 
 Start:
-	call get_bframe_p
-	push dx          ; сохраняем указатель на buffer
+				call get_bframe_p
+				push dx          ; сохраняем указатель на buffer
 
-	mov ax, ds
-	mov es, ax
+				mov ax, ds
+				mov es, ax
 
-	mov si, 0080h
-	xor ax, ax
-	mov al, [si]
-	mov cx, ax
-	jcxz close
-	dec cx
-	jcxz close
+				mov si, 0080h
+				xor ax, ax
+				mov al, [si]
+				mov cx, ax
+				jcxz close
+				dec cx
+				jcxz close
 
-	push cx
-	mov di, 0082h
-	xor ax, ax
-	mov al, '#'
-	call strinfo
-	mov di, bx       ; di = n_strings
+				push cx
+				mov di, 0082h
+				xor ax, ax
+				mov al, '#'
+				call strinfo
+				mov di, bx       ; di = n_strings
 
-	mov ax, 0b800h
-	mov es, ax
-	mov bx, 690h     ; центр экрана
+				mov ax, 0b800h
+				mov es, ax
+				mov bx, 690h     ; центр экрана
 
-	push dx
-	call set_text_start
-	pop dx
-	pop cx
+				push dx
+				call set_text_start
+				pop dx
+				pop cx
 
-	push dx
-	push bx
-	call print_text
-	pop bx
-	pop dx
+				push dx
+				push bx
+				call print_text
+				pop bx
+				pop dx
 
-	pop ax           ; извлекаем buffer в ax
-	push di          ; n_strings
-	push dx          ; max_len
-	push ax          ; buffer
-	push bx          ; text start
-	call print_bframe
-	add sp, 8        ; очистка стека от аргументов
-				
+				pop ax           ; buffer -> ax
+				push di          ; n_strings
+				push dx          ; max_len
+				push ax          ; buffer
+				push bx          ; text start
+				call print_bframe
+				add sp, 8        ; clean up
+
 
 				;mov ax, di 
 				;call print_frame
@@ -107,19 +107,19 @@ skip:
 
 set_text_start	proc
 
-		dec di
-		mov cx, di 
-		mov ax, 00a0h
-		mul cl
-		sub bx, ax
-		inc di
+				dec di
+				mov cx, di 
+				mov ax, 00a0h
+				mul cl
+				sub bx, ax
+				inc di
 
-		inc dx
-		and dx, 0fffeh
-		sub bx, dx
+				inc dx
+				and dx, 0fffeh
+				sub bx, dx
 
-		ret
-		endp
+				ret
+				endp
 
 ;---------------------------------------------------------------------------
 ;Prints comand string text to screen
@@ -131,25 +131,25 @@ set_text_start	proc
 
 print_text  	proc 
 
-		mov si, 0081h
-		mov dx, bx
+				mov si, 0081h
+				mov dx, bx
 
-metka1:		inc si					; text ouput cycle
-		cmp byte ptr [si], '#'
-		jne skip1
-		add dx, 140h
-		mov bx, dx
-		dec cx
-		jmp metka1
+metka1:			inc si					; text ouput cycle
+				cmp byte ptr [si], '#'
+				jne skip1
+				add dx, 140h
+				mov bx, dx
+				dec cx
+				jmp metka1
 		
-skip1:		mov al, [si]
-		mov es:[bx], al
-		mov byte ptr es:[bx + 01], 75h
-		add bx, 02h
-		loop metka1
+skip1:			mov al, [si]
+				mov es:[bx], al
+				mov byte ptr es:[bx + 01], 75h
+				add bx, 02h
+				loop metka1
 
-		ret
-		endp
+				ret
+				endp
 
 ;---------------------------------------------------------------------------
 ;Prints frame around text
@@ -162,41 +162,41 @@ skip1:		mov al, [si]
 
 print_frame		proc
 
-		sub bx, 0002h
-		sub bx, 00a0h
-		mov cx, dx
-		add cx, 02h
-		mov si, bx
-		call pr_sum_str
-		mov bx, si
+				sub bx, 0002h
+				sub bx, 00a0h
+				mov cx, dx
+				add cx, 02h
+				mov si, bx
+				call pr_sum_str
+				mov bx, si
 
-		mov cx, 0002h 
-		mul cl
-		mov di, ax 
-		inc di
-		mov cx, 00a0h
-		mul cl
-		add bx, ax
-		mov cx, dx
-		add cx, 02h
-		call pr_sum_str
+				mov cx, 0002h 
+				mul cl
+				mov di, ax 
+				inc di
+				mov cx, 00a0h
+				mul cl
+				add bx, ax
+				mov cx, dx
+				add cx, 02h
+				call pr_sum_str
 
-		mov bx, si
-		
-		mov cx, di
+				mov bx, si
 
-		call pr_sum_col
+				mov cx, di
 
-		mov bx, si
-		add bx, dx
-		add bx, dx
-		add bx, 0004h
-		mov cx, di
+				call pr_sum_col
 
-		call pr_sum_col
+				mov bx, si
+				add bx, dx
+				add bx, dx
+				add bx, 0004h
+				mov cx, di
 
-		ret
-		endp
+				call pr_sum_col
+
+				ret
+				endp
 
 ;---------------------------------------------------------------------------
 ;Prints row of symbols
@@ -209,14 +209,14 @@ print_frame		proc
 
 pr_sum_str		proc
 metka2:
-		mov es:[bx], al
-		inc bx
-		mov byte ptr es:[bx], 04h
-		inc bx
-		loop metka2
+				mov es:[bx], al
+				inc bx
+				mov byte ptr es:[bx], 04h
+				inc bx
+				loop metka2
 
-		ret
-		endp
+				ret
+				endp
 
 ;---------------------------------------------------------------------------
 ;Prints column of sumbols
@@ -229,13 +229,13 @@ metka2:
 
 pr_sum_col		proc
 metka4:
-		mov es:[bx], al
-		mov byte ptr es:[bx + 01], 04h
-		add bx, 00a0h
-		loop metka4
+				mov es:[bx], al
+				mov byte ptr es:[bx + 01], 04h
+				add bx, 00a0h
+				loop metka4
 
-		ret
-		endp
+				ret
+				endp
 
 ;---------------------------------------------------------------------------
 ;Asks parameters of beautiful frame
@@ -246,16 +246,16 @@ metka4:
 
 get_bframe_p	proc
 
-		mov dx, offset get_params
-		mov ah, 09h
-		int 21h 
-
-		mov dx, offset buffer 
-		mov ah, 0ah
-		int 21h
-
-		ret
-		endp
+				mov dx, offset get_params
+				mov ah, 09h
+				int 21h 
+		
+				mov dx, offset buffer 
+				mov ah, 0ah
+				int 21h
+		
+				ret
+				endp
 
 ;-------------------------------------------------------------------------
 ;Prints beautiful frame with parameters 
@@ -265,7 +265,7 @@ get_bframe_p	proc
 ;			ss:[sp + 8] == n_strings
 ;			es --> videomem
 ;Exit:		--
-;Distr:		all regs
+;Distr:		all regs (without sp)
 ;-------------------------------------------------------------------------
 
 print_bframe	proc

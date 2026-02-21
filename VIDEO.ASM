@@ -5,48 +5,59 @@ org 100h
 
 CR		equ 0dh
 LF		equ 0ah
+atr		equ 04h
 
-Start:	
-		call get_bframe_p
+Start:
+	call get_bframe_p
+	push dx          ; сохраняем указатель на buffer
 
-		mov ax, ds          ; es = ds
-		mov es, ax
+	mov ax, ds
+	mov es, ax
 
-		mov si, 0080h           ;cx = n_symb
-		xor ax, ax
-		mov al, [si]
-		mov cx, ax
-		jcxz close
-		dec cx
-		jcxz close
+	mov si, 0080h
+	xor ax, ax
+	mov al, [si]
+	mov cx, ax
+	jcxz close
+	dec cx
+	jcxz close
 
-		push cx				; check str Information
-		mov di, 0082h
-		xor ax, ax
-		mov al, '#'
-		call strinfo
-		mov di, bx			; di = n_strings
+	push cx
+	mov di, 0082h
+	xor ax, ax
+	mov al, '#'
+	call strinfo
+	mov di, bx       ; di = n_strings
 
-		mov ax, 0b800h
-		mov es, ax
-		mov bx, 690h	;bx = center
+	mov ax, 0b800h
+	mov es, ax
+	mov bx, 690h     ; центр экрана
 
-		push dx
-		call set_text_start
-		pop dx
-		pop cx
+	push dx
+	call set_text_start
+	pop dx
+	pop cx
 
-		push dx
-		push bx  
-		call print_text
-		pop bx
-		pop dx
+	push dx
+	push bx
+	call print_text
+	pop bx
+	pop dx
 
-		mov ax, di 
-		call print_frame
+	pop ax           ; извлекаем buffer в ax
+	push di          ; n_strings
+	push dx          ; max_len
+	push ax          ; buffer
+	push bx          ; text start
+	call print_bframe
+	add sp, 8        ; очистка стека от аргументов
+				
 
-close:		mov ah, 4ch
-		int 21h
+				;mov ax, di 
+				;call print_frame
+
+close:			mov ah, 4ch
+				int 21h
 
 ;--------------------------------------------------------------------------
 ;Writes ES:DI number of sumbols in AL to BX and calculate str max len in dx 
@@ -60,30 +71,30 @@ close:		mov ah, 4ch
 
 strinfo			proc
 			
-		xor bx, bx
-		xor dx, dx
+				xor bx, bx
+				xor dx, dx
 
-		mov si, cx
-		cld
+				mov si, cx
+				cld
 n_str:
-		repne scasb
-		inc bx
-		sub si, cx
-		cmp dx, si
-		jae skip
-		jcxz skip_dec
-		dec si
-		dec cx
-		inc di
+				repne scasb
+				inc bx
+				sub si, cx
+				cmp dx, si
+				jae skip
+				jcxz skip_dec
+				dec si
+				dec cx
+				inc di
 skip_dec: 
-		mov dx, si
+				mov dx, si
 skip:
-		mov si, cx
-		cmp si, 0
-		jne n_str
+				mov si, cx
+				cmp si, 0
+				jne n_str
 
-		ret
-		endp
+				ret
+				endp
 
 ;---------------------------------------------------------------------------
 ;Set BX in start text print_frame
@@ -191,13 +202,14 @@ print_frame		proc
 ;Prints row of symbols
 ;Entry:		ES:BX --> start of row
 ;			CX  == n symbols
+;			AL  == symbol
 ;Exit:		--
 ;Distr:		BX, CX
 ;---------------------------------------------------------------------------
 
 pr_sum_str		proc
 metka2:
-		mov byte ptr es:[bx], 21h
+		mov es:[bx], al
 		inc bx
 		mov byte ptr es:[bx], 04h
 		inc bx
@@ -210,13 +222,14 @@ metka2:
 ;Prints column of sumbols
 ;Entry:		ES:BX --> start of column
 ;			CX  == n symbols
+;			AL  == symbol
 ;Exit:		--
 ;Distr:		BX, CX
 ;---------------------------------------------------------------------------	
 
 pr_sum_col		proc
 metka4:
-		mov byte ptr es:[bx], 21h
+		mov es:[bx], al
 		mov byte ptr es:[bx + 01], 04h
 		add bx, 00a0h
 		loop metka4
@@ -243,6 +256,130 @@ get_bframe_p	proc
 
 		ret
 		endp
+
+;-------------------------------------------------------------------------
+;Prints beautiful frame with parameters 
+;Entry: 	ss:[sp + 2] --> text start place
+;			ss:[sp + 4] --> symbols buffer
+;			ss:[sp + 6] == str_max_len
+;			ss:[sp + 8] == n_strings
+;			es --> videomem
+;Exit:		--
+;Distr:		all regs
+;-------------------------------------------------------------------------
+
+print_bframe	proc
+
+				mov bp, sp
+
+				mov bx, ss:[bp + 2]
+				mov si, ss:[bp + 4]
+
+				sub bx, 326d					; first_param
+				mov al, [si + 2]
+				mov es:[bx], al
+				mov byte ptr es:[bx + 1], atr
+				push bx
+				add bx, 2
+
+				mov al, [si + 3]				;second_param
+				mov cx, ss:[bp + 6]
+				add cx, 4
+				push bx
+				call pr_sum_str
+
+				mov al, [si + 4]				;third param
+				mov es:[bx], al
+				mov byte ptr es:[bx + 1], atr
+
+				pop bx							;5th param
+				add bx, 160d
+				mov al, [si + 6]
+				mov cx, ss:[bp + 6]
+				add cx, 4
+				call pr_sum_str
+
+				mov cx, ss:[bp + 8]
+				shl cx, 1
+				inc cx	
+				pop bx
+				add bx, 160d
+				push bx
+				mov di, cx
+				mov al, [si + 5]				;4th param
+				call pr_sum_col
+				pop bx
+				push bx
+				mov cx, di 
+				mov dx, ss:[bp + 6]
+				shl dx, 1
+				add dx, 10d
+				add bx, dx 
+				mov al, [si + 7]
+				call pr_sum_col
+
+				pop bx 
+				add bx, 2
+				mov al, [si + 6]
+				mov cx, di 
+				push bx
+				push bx
+				call pr_sum_col
+
+				pop bx 
+				add bx, 2
+				push bx
+				mov cx, di
+				call pr_sum_col
+
+				pop bx
+				mov dx, ss:[bp + 6]
+				inc dx
+				shl dx, 1
+				add bx, dx
+				mov cx, di
+				push bx
+				call pr_sum_col 
+
+				pop bx 
+				add bx, 2
+				mov cx, di
+				call pr_sum_col
+                                                    
+				pop bx ; from str 324
+				mov ax, ss:[bp + 8]
+				shl ax, 1
+				mov dl, 160d
+				mul dl
+				add bx, ax
+				push bx
+
+				mov al, [si + 6]
+				mov cx, ss:[bp + 6]
+				add cx, 4
+				mov di, cx
+				call pr_sum_str
+				pop bx
+
+				add bx, 158d
+				mov al, [si + 8]
+				mov es:[bx], al
+				mov byte ptr es:[bx + 1], atr 
+				add bx, 2
+
+				mov al, [si + 9]
+				mov cx, di
+				call pr_sum_str
+
+				mov al, [si + 10d]
+				mov es:[bx], al
+				mov byte ptr es:[bx + 1], atr 
+
+				ret
+				endp
+
+
+
 
 get_params:		db CR, LF, 'Print frame parameters (for example try 123456789):  $'
 

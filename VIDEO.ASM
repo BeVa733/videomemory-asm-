@@ -9,7 +9,7 @@ atr		equ 04h
 
 Start:
 				call get_bframe_p
-				push dx          ; сохраняем указатель на buffer
+				push dx  
 
 				mov ax, ds
 				mov es, ax
@@ -31,7 +31,7 @@ Start:
 
 				mov ax, 0b800h
 				mov es, ax
-				mov bx, 690h     ; центр экрана
+				mov bx, 690h
 
 				push dx
 				call set_text_start
@@ -249,11 +249,11 @@ get_bframe_p	proc
 				mov dx, offset get_params
 				mov ah, 09h
 				int 21h 
-		
+
 				mov dx, offset buffer 
 				mov ah, 0ah
 				int 21h
-		
+
 				ret
 				endp
 
